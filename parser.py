@@ -1,8 +1,24 @@
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
 from collections import OrderedDict
+import pymongo
+from pymongo import MongoClient
+from bson import ObjectId
 import json
 import re
+
+dthandler = lambda obj: (
+    str(obj)
+    if isinstance(obj, Decimal)
+    or isinstance(obj, datetime.time)
+    else None
+)
+
+#DB Connection
+con = MongoClient('202.182.112.20:27017')
+db = con.sensible
+col = db.dimibobs
+
 
 html = urlopen("https://www.dimigo.hs.kr/index.php?mid=school_cafeteria&page=1")  
 
@@ -23,18 +39,17 @@ for link in parse_url:
     bsObject = BeautifulSoup(html, "html.parser")
     
     meal_json = OrderedDict()
-    meal = OrderedDict()
     
     temp_date = bsObject.find('strong',{'class':'scClipboard'}).text.split(' ')
     meal_json['date']=bsObject.find('span',{'title':'등록일'}).text[1:5]+'-'+temp_date[0][0:temp_date[0].find('월')].zfill(2)+'-'+temp_date[1][0:temp_date[1].find('일')].zfill(2)
     for data in bsObject.find_all('p'):
         if re_meal.match(data.text):
             if '조식' in data.text:
-                meal['breakfast']=data.text[data.text.find(': ')+2:]
+                meal_json['breakfast']=data.text[data.text.find(': ')+2:]
             elif '중식' in data.text:
-                meal['lunch']=data.text[data.text.find(': ')+2:]
+                meal_json['lunch']=data.text[data.text.find(': ')+2:]
             elif '석식' in data.text:
-                meal['dinner']=data.text[data.text.find(': ')+2:]
-    meal_json['data']=meal
-    meal_data.append(meal_json)
-print(json.dumps(meal_data, ensure_ascii=False, indent="\t"))
+                meal_json['dinner']=data.text[data.text.find(': ')+2:]
+    col.update({"date": meal_json['date']}, meal_json, upsert=True)
+#     meal_data.append(meal_json)
+# print(json.dumps(meal_data, ensure_ascii=False, indent="\t"))
