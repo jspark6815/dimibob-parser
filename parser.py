@@ -15,8 +15,9 @@ dthandler = lambda obj: (
 )
 
 #DB Connection
-con = MongoClient('202.182.112.20:27017')
-db = con.sensible
+con = MongoClient('api.dimigo.life:27017')
+con.admin.authenticate('dimigolife','dimigolife12#@')
+db = con.life
 col = db.dimibobs
 
 
